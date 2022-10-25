@@ -61,10 +61,71 @@ def hillClimbing(coordinates, matrix):
             bestPathLength = bestNeighborLength
 
 
+# ant colony optimization
+def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
+    path = [0]
+
+    notVisitedPoints = listOfPlaces.copy()
+    pathLength = 0
+    currentPoint = random.choice(listOfPlaces)
+    print('currPoint', currentPoint)
+    while len(notVisitedPoints) > 0:
+        nextPoint = getNextEdge(currentPoint, notVisitedPoints, path)
+        print('nextPoint', nextPoint)
+        path.append(nextPoint)
+        if nextPoint == path[0]:
+            break
+        notVisitedPoints.remove(nextPoint)
+        pathLength += distanceMatrix[path[-1]][nextPoint]
+        currentPoint = nextPoint
+
+    print('ant goes through graph')
+    return path, pathLength
+
+
+def getNextEdge(currentPoint, notVisitedPoints, walkedPath):
+    weights = []
+    for i in range(len(notVisitedPoints)):
+        weights.append(pheromoneMatrix[currentPoint][notVisitedPoints[i]] + (1 / distanceMatrix[currentPoint][notVisitedPoints[i]]))
+    return currentPoint + 1
+
+
+def evaporatePheromones(pheromoneMatrix, rate=0.5):
+    for i in range(len(pheromoneMatrix)):
+        for j in range(len(pheromoneMatrix)):
+            pheromoneMatrix[i][j] *= rate
+
+
+def createPheromoneMatrix(distanceMatrix):
+    pheromoneMatrix = []
+    for i in range(len(distanceMatrix)):
+        row = []
+        for j in range(len(distanceMatrix)):
+            row.append(1)
+        pheromoneMatrix.append(row)
+    return pheromoneMatrix
+
+
+def ACO(coordinates, distanceMatrix):
+    antsCount = 5
+    pheromoneMatrix = createPheromoneMatrix(distanceMatrix)
+    listOfPlaces = list(range(len(coordinates)))
+    print(listOfPlaces)
+    for ant in range(antsCount):
+        antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
+    # releaseTheAnts(antsCount, pheromoneMatrix, distanceMatrix)
+    evaporatePheromones(pheromoneMatrix)
+    # updatePheromones()
+    return True
+
+
 with open(instance_path) as f:
     instance = json.load(f)
-    print(instance.keys())
-    solution = hillClimbing(instance['Coordinates'], instance['Matrix'])
+    aco = True
+    if aco:
+        solution = ACO(instance['Coordinates'], instance['Matrix'])
+    else:
+        solution = hillClimbing(instance['Coordinates'], instance['Matrix'])
     print(solution)
     with open(output_path, 'w') as f:
         json.dump(solution, f)
