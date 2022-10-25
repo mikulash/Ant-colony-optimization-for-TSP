@@ -63,37 +63,55 @@ def hillClimbing(coordinates, matrix):
 
 # ant colony optimization
 def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
-    path = [0]
-
+    visited = [0]
     notVisitedPoints = listOfPlaces.copy()
-    pathLength = 0
-    currentPoint = random.choice(listOfPlaces)
-    print('currPoint', currentPoint)
-    while len(notVisitedPoints) > 0:
-        nextPoint = getNextEdge(currentPoint, notVisitedPoints, path)
-        print('nextPoint', nextPoint)
-        path.append(nextPoint)
-        if nextPoint == path[0]:
-            break
-        notVisitedPoints.remove(nextPoint)
-        pathLength += distanceMatrix[path[-1]][nextPoint]
+    # currentPoint = random.choice(notVisitedPoints)  # start from random point
+    currentPoint = 0  # start from random point
+    # >2 because one node is deleted in the step and then there is only the beginning node left
+    while len(notVisitedPoints) > 2:
+        notVisitedPoints.remove(currentPoint)
+        nextPoint = getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix)
+        visited.append(nextPoint)
         currentPoint = nextPoint
+    visited.append(visited[0])  # return to starting point
+    return visited
 
-    print('ant goes through graph')
-    return path, pathLength
 
-
-def getNextEdge(currentPoint, notVisitedPoints, walkedPath):
+def getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix):
     weights = []
+    BETA = 1.1
+    print(notVisitedPoints)
     for i in range(len(notVisitedPoints)):
-        weights.append(pheromoneMatrix[currentPoint][notVisitedPoints[i]] + (1 / distanceMatrix[currentPoint][notVisitedPoints[i]]))
-    return currentPoint + 1
+        pheromones = pheromoneMatrix[currentPoint][notVisitedPoints[i]]
+        distance = distanceMatrix[currentPoint][notVisitedPoints[i]]
+        weights.append(pheromones * (1/distance)**BETA)
+    weightSum = sum(weights)
+    attractivity = [weight / weightSum for weight in weights]  # p^k_xy
+    nextPoint = random.choices(notVisitedPoints, attractivity)[0]
+    return nextPoint
 
 
-def evaporatePheromones(pheromoneMatrix, rate=0.5):
+def evaporatePheromones(pheromoneMatrix, evaporation=0.3):
     for i in range(len(pheromoneMatrix)):
         for j in range(len(pheromoneMatrix)):
-            pheromoneMatrix[i][j] *= rate
+            pheromoneMatrix[i][j] *= evaporation
+
+
+def updatePheromones(paths, pheromoneMatrix, distanceMatrix):
+    evaporation = 0.5
+    Q = 50
+    for path in paths:
+        pheromoneAmmount = Q / getPathLength(path, distanceMatrix)
+        print('pat', path)
+        print('xxx',pheromoneAmmount)
+        for i in range(len(path)):
+            if i == 0:
+                continue
+            pheromoneMatrix[path[i - 1]][path[i]] += pheromoneAmmount
+            pheromoneMatrix[path[i - 1]][path[i]] = round(pheromoneMatrix[path[i - 1]][path[i]], 1)
+            pheromoneMatrix[path[i]][path[i - 1]] += pheromoneAmmount
+            pheromoneMatrix[path[i]][path[i - 1]] = round(pheromoneMatrix[path[i]][path[i - 1]], 1)
+    evaporatePheromones(pheromoneMatrix, evaporation)
 
 
 def createPheromoneMatrix(distanceMatrix):
@@ -101,22 +119,33 @@ def createPheromoneMatrix(distanceMatrix):
     for i in range(len(distanceMatrix)):
         row = []
         for j in range(len(distanceMatrix)):
-            row.append(1)
+            if i == j:
+                row.append(0)
+            else:
+                row.append(1)
         pheromoneMatrix.append(row)
     return pheromoneMatrix
 
 
 def ACO(coordinates, distanceMatrix):
-    antsCount = 5
+    antsCount = 20
     pheromoneMatrix = createPheromoneMatrix(distanceMatrix)
+    print(pheromoneMatrix)
     listOfPlaces = list(range(len(coordinates)))
     print(listOfPlaces)
-    for ant in range(antsCount):
-        antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
-    # releaseTheAnts(antsCount, pheromoneMatrix, distanceMatrix)
-    evaporatePheromones(pheromoneMatrix)
-    # updatePheromones()
-    return True
+    iterations = 30
+    for i in range(iterations):
+        paths = []
+        for ant in range(antsCount):
+            path = antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
+            paths.append(path)
+        print(paths)
+        updatePheromones(paths, pheromoneMatrix, distanceMatrix)
+
+    print('**********')
+    print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in pheromoneMatrix]))
+
+    return paths[-1]
 
 
 with open(instance_path) as f:
