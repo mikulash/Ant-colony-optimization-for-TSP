@@ -63,7 +63,7 @@ def hillClimbing(coordinates, matrix):
 def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
     notVisitedPoints = listOfPlaces.copy()
     currentPoint = random.choice(notVisitedPoints)  # start from random point
-    visited = [currentPoint]
+    visited = [currentPoint] # visited path begins with starting point
     while len(notVisitedPoints) > 1:
         notVisitedPoints.remove(currentPoint)
         nextPoint = getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix)
@@ -75,12 +75,12 @@ def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
 
 def getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix):
     weights = []
-    BETA = 1.1
-    ALPHA = 1.1
+    BETA = 1.1 # to control the influence of the desirability of the edge
+    ALPHA = 1.1 # to control the influence of the pheromone
     for i in range(len(notVisitedPoints)):
         pheromones = pheromoneMatrix[currentPoint][notVisitedPoints[i]]
         distance = distanceMatrix[currentPoint][notVisitedPoints[i]]
-        weights.append(pheromones ** ALPHA * (1 / distance) ** BETA)
+        weights.append(pheromones ** ALPHA * (1 / distance) ** BETA) # probability if move to this point
     weightSum = sum(weights)
     attractivity = [weight / weightSum for weight in weights]  # p^k_xy
     nextPoint = random.choices(notVisitedPoints, attractivity)[0]
@@ -94,8 +94,8 @@ def evaporatePheromones(pheromoneMatrix, evaporation=0.3):
 
 
 def updatePheromones(paths, pheromoneMatrix, distanceMatrix):
-    evaporation = 0.5
-    Q = 50
+    evaporation = 0.5 # rate of removing pheromones
+    Q = 50 # pheromone intensity
     for path in paths:
         pheromoneAmount = Q / getPathLength(path, distanceMatrix)
         for i in range(len(path)):
@@ -120,6 +120,7 @@ def createPheromoneMatrix(distanceMatrix):
 
 
 def doesArrayStartToConverge(arr):
+    # if the solution stops improving, stop the algorithm
     if len(arr) < 5:
         return False
     lastCoupleOfValues = arr[-10:-2]
