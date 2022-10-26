@@ -1,6 +1,7 @@
 import random
 import sys
 import json
+from datetime import datetime
 
 instance_path = sys.argv[1]
 output_path = sys.argv[2]
@@ -31,14 +32,11 @@ def getNeighbors(path):
         for j in range(i + 1, len(path)):
             neighbor = path.copy()
             neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
-            # print('xxxx', neighbor)
             neighbors.append(neighbor)
-    # print('neig', neighbors[10])
-    # print(len(neighbors))
     return neighbors
 
 
-def findBestNeighbor(neighbors, matrix):
+def findBestPath(neighbors, matrix):
     # find the best neighbor by comparing path lengths
     best = neighbors[0]
     for i in range(len(neighbors)):
@@ -52,7 +50,7 @@ def hillClimbing(coordinates, matrix):
     bestPathLength = getPathLength(bestPath, matrix)
     while True:
         pathNeighbors = getNeighbors(bestPath)
-        bestNeighbor = findBestNeighbor(pathNeighbors, matrix)
+        bestNeighbor = findBestPath(pathNeighbors, matrix)
         bestNeighborLength = getPathLength(bestNeighbor, matrix)
         if bestNeighborLength > bestPathLength:
             return bestPath
@@ -66,24 +64,16 @@ def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
     notVisitedPoints = listOfPlaces.copy()
     currentPoint = random.choice(notVisitedPoints)  # start from random point
     visited = [currentPoint]
-
-    # currentPoint = 0  # start from the same point
-    # notVisitedPoints.remove(currentPoint)
     while len(notVisitedPoints) > 1:
         notVisitedPoints.remove(currentPoint)
         nextPoint = getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix)
         visited.append(nextPoint)
-        # print(notVisitedPoints,'______')
-        # print(currentPoint,'****')
-        # print(">>>>>>>>>")
         currentPoint = nextPoint
     visited.append(visited[0])  # return to starting point
     return visited
 
 
 def getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix):
-    # print('not', notVisitedPoints)
-    # print('cur', currentPoint)
     weights = []
     BETA = 1.1
     ALPHA = 1.1
@@ -107,12 +97,12 @@ def updatePheromones(paths, pheromoneMatrix, distanceMatrix):
     evaporation = 0.5
     Q = 50
     for path in paths:
-        pheromoneAmmount = Q / getPathLength(path, distanceMatrix)
+        pheromoneAmount = Q / getPathLength(path, distanceMatrix)
         for i in range(len(path)):
             if i == 0:
                 continue
-            pheromoneMatrix[path[i - 1]][path[i]] += pheromoneAmmount
-            pheromoneMatrix[path[i]][path[i - 1]] += pheromoneAmmount
+            pheromoneMatrix[path[i - 1]][path[i]] += pheromoneAmount
+            pheromoneMatrix[path[i]][path[i - 1]] += pheromoneAmount
     evaporatePheromones(pheromoneMatrix, evaporation)
 
 
@@ -129,30 +119,49 @@ def createPheromoneMatrix(distanceMatrix):
     return pheromoneMatrix
 
 
-def ACO(coordinates, distanceMatrix):
-    antsCount = 50
+def doesArrayStartToConverge(arr):
+    if len(arr) < 5:
+        return False
+    lastCoupleOfValues = arr[-10:-2]
+    lastValue = arr[-1]
+    for i in range(len(lastCoupleOfValues)):
+        if abs(lastCoupleOfValues[i] - lastValue) < 10:
+            return True
+    return False
+
+
+def ACO(coordinates, distanceMatrix, timeout, iterations=100, antsCount=50):
+    start = datetime.now()
     pheromoneMatrix = createPheromoneMatrix(distanceMatrix)
     listOfPlaces = list(range(len(coordinates)))
-    iterations = 50
+    paths = []
+    bestPathLengths = []
     for i in range(iterations):
         paths = []
         for ant in range(antsCount):
             path = antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
             paths.append(path)
         updatePheromones(paths, pheromoneMatrix, distanceMatrix)
+        bestPathLengths.append(getPathLength(findBestPath(paths, distanceMatrix), distanceMatrix))
+        if doesArrayStartToConverge(bestPathLengths):
+            print('converged at iteration', i)
+            break
+        if (datetime.now() - start).total_seconds() > timeout:
+            print('timeout')
+            break
 
-    # print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in pheromoneMatrix]))
-    bestPath = findBestNeighbor(paths, distanceMatrix)  # reused function from hillclimbing, finds the shortest path
-    print(bestPath)
+    bestPath = findBestPath(paths, distanceMatrix)  # reused function from hillclimbing, finds the shortest path
     return bestPath
 
 
 with open(instance_path) as f:
     instance = json.load(f)
-    aco = True
+    aco = True  # select algorithm
     if aco:
-        solution = ACO(instance['Coordinates'], instance['Matrix'])
+        # ants colonization algorithm
+        solution = ACO(instance['Coordinates'], instance['Matrix'], instance['Timeout'])
     else:
         solution = hillClimbing(instance['Coordinates'], instance['Matrix'])
+    print(solution)
     with open(output_path, 'w') as f:
         json.dump(solution, f)
