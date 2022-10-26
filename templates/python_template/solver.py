@@ -63,28 +63,34 @@ def hillClimbing(coordinates, matrix):
 
 # ant colony optimization
 def antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix):
-    visited = [0]
     notVisitedPoints = listOfPlaces.copy()
-    # currentPoint = random.choice(notVisitedPoints)  # start from random point
-    currentPoint = 0  # start from random point
-    # >2 because one node is deleted in the step and then there is only the beginning node left
-    while len(notVisitedPoints) > 2:
+    currentPoint = random.choice(notVisitedPoints)  # start from random point
+    visited = [currentPoint]
+
+    # currentPoint = 0  # start from the same point
+    # notVisitedPoints.remove(currentPoint)
+    while len(notVisitedPoints) > 1:
         notVisitedPoints.remove(currentPoint)
         nextPoint = getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix)
         visited.append(nextPoint)
+        # print(notVisitedPoints,'______')
+        # print(currentPoint,'****')
+        # print(">>>>>>>>>")
         currentPoint = nextPoint
     visited.append(visited[0])  # return to starting point
     return visited
 
 
 def getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix):
+    # print('not', notVisitedPoints)
+    # print('cur', currentPoint)
     weights = []
     BETA = 1.1
-    print(notVisitedPoints)
+    ALPHA = 1.1
     for i in range(len(notVisitedPoints)):
         pheromones = pheromoneMatrix[currentPoint][notVisitedPoints[i]]
         distance = distanceMatrix[currentPoint][notVisitedPoints[i]]
-        weights.append(pheromones * (1/distance)**BETA)
+        weights.append(pheromones**ALPHA * (1/distance)**BETA)
     weightSum = sum(weights)
     attractivity = [weight / weightSum for weight in weights]  # p^k_xy
     nextPoint = random.choices(notVisitedPoints, attractivity)[0]
@@ -102,15 +108,11 @@ def updatePheromones(paths, pheromoneMatrix, distanceMatrix):
     Q = 50
     for path in paths:
         pheromoneAmmount = Q / getPathLength(path, distanceMatrix)
-        print('pat', path)
-        print('xxx',pheromoneAmmount)
         for i in range(len(path)):
             if i == 0:
                 continue
             pheromoneMatrix[path[i - 1]][path[i]] += pheromoneAmmount
-            pheromoneMatrix[path[i - 1]][path[i]] = round(pheromoneMatrix[path[i - 1]][path[i]], 1)
             pheromoneMatrix[path[i]][path[i - 1]] += pheromoneAmmount
-            pheromoneMatrix[path[i]][path[i - 1]] = round(pheromoneMatrix[path[i]][path[i - 1]], 1)
     evaporatePheromones(pheromoneMatrix, evaporation)
 
 
@@ -128,24 +130,17 @@ def createPheromoneMatrix(distanceMatrix):
 
 
 def ACO(coordinates, distanceMatrix):
-    antsCount = 20
+    antsCount = 50
     pheromoneMatrix = createPheromoneMatrix(distanceMatrix)
-    print(pheromoneMatrix)
     listOfPlaces = list(range(len(coordinates)))
-    print(listOfPlaces)
-    iterations = 30
+    iterations = 300
     for i in range(iterations):
         paths = []
         for ant in range(antsCount):
             path = antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
             paths.append(path)
-        print(paths)
         updatePheromones(paths, pheromoneMatrix, distanceMatrix)
-
-    print('**********')
-    print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in pheromoneMatrix]))
-
-    return paths[-1]
+    return paths[-1] # tady to vrati posledni cestu, ktera byla vytvorena, ale by bylo lepsi vratit nejlepsi TODO
 
 
 with open(instance_path) as f:
@@ -155,6 +150,5 @@ with open(instance_path) as f:
         solution = ACO(instance['Coordinates'], instance['Matrix'])
     else:
         solution = hillClimbing(instance['Coordinates'], instance['Matrix'])
-    print(solution)
     with open(output_path, 'w') as f:
         json.dump(solution, f)
