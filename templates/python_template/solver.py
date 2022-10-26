@@ -90,7 +90,7 @@ def getNextEdge(currentPoint, notVisitedPoints, pheromoneMatrix, distanceMatrix)
     for i in range(len(notVisitedPoints)):
         pheromones = pheromoneMatrix[currentPoint][notVisitedPoints[i]]
         distance = distanceMatrix[currentPoint][notVisitedPoints[i]]
-        weights.append(pheromones**ALPHA * (1/distance)**BETA)
+        weights.append(pheromones ** ALPHA * (1 / distance) ** BETA)
     weightSum = sum(weights)
     attractivity = [weight / weightSum for weight in weights]  # p^k_xy
     nextPoint = random.choices(notVisitedPoints, attractivity)[0]
@@ -133,14 +133,18 @@ def ACO(coordinates, distanceMatrix):
     antsCount = 50
     pheromoneMatrix = createPheromoneMatrix(distanceMatrix)
     listOfPlaces = list(range(len(coordinates)))
-    iterations = 300
+    iterations = 50
     for i in range(iterations):
         paths = []
         for ant in range(antsCount):
             path = antGoesThroughGraph(listOfPlaces, distanceMatrix, pheromoneMatrix)
             paths.append(path)
         updatePheromones(paths, pheromoneMatrix, distanceMatrix)
-    return paths[-1] # tady to vrati posledni cestu, ktera byla vytvorena, ale by bylo lepsi vratit nejlepsi TODO
+
+    # print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in pheromoneMatrix]))
+    bestPath = findBestNeighbor(paths, distanceMatrix)  # reused function from hillclimbing, finds the shortest path
+    print(bestPath)
+    return bestPath
 
 
 with open(instance_path) as f:
