@@ -157,10 +157,11 @@ def ACO(coordinates, distanceMatrix, timeout, iterations=100, antsCount=50):
 with open(instance_path) as f:
     instance = json.load(f)
     aco = True  # select algorithm
+    hillClimb = False
     if aco:
         # ants colonization algorithm
         solution = ACO(instance['Coordinates'], instance['Matrix'], instance['Timeout'])
-    else:
+    if hillClimb:
         solution = hillClimbing(instance['Coordinates'], instance['Matrix'])
     print(solution)
     with open(output_path, 'w') as f:
