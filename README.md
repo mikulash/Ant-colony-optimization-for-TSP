@@ -1,3 +1,2 @@
-# IV126_HW
-Homework for Fundamentals of AI
-Hill climbing and ant colony optimization algorithms for traveling salesman problem
+# Hill climbing and ant colony optimization algorithms for traveling salesman problem
+Homework for Fundamentals of AI IV126 @ FI MUNI
